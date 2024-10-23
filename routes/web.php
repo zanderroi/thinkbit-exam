@@ -26,6 +26,8 @@ Route::middleware('auth')->group(function () {
     })->name('add-books');
 
     Route::post('/books-update/{book}', [BookController::class, 'update']);
+
+    Route::get('/export-books', [BookController::class, 'exportCsv']);
 });
 
 //Books API

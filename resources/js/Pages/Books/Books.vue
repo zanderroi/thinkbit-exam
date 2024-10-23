@@ -103,6 +103,22 @@ const deleteBook = async () => {
     toast.error("Failed to Delete Book");
   }
 };
+
+const downloadCsv = async () => {
+    try {
+        await axios.get('/export-books', {
+            responseType: 'blob',
+        });
+        const blob = new Blob([response.data], { type: 'text/csv'});
+        const link = document.createElement('a');
+        link.href = window.URL.createObjectURL(blob);
+        link.download = 'books.csv';
+        link.click();
+        toast.success("CSV downloaded Successfully");
+    } catch (error) {
+    toast.error("Failed to Export Book");
+  }
+};
 const sortBooks = (order) => {
   sortOrder.value = order;
   fetchBooks(order);
@@ -163,7 +179,7 @@ onMounted(() => {
             <button class="px-2 py-1 bg-gray-800 text-gray-50 rounded-sm">
               Import CSV
             </button>
-            <button class="px-2 py-1 bg-gray-800 text-gray-50 rounded-sm">
+            <button @click="downloadCsv" class="px-2 py-1 bg-gray-800 text-gray-50 rounded-sm">
               Export CSV
             </button>
           </div>

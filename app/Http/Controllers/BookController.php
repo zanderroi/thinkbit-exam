@@ -6,6 +6,8 @@ use App\Http\Requests\StoreBookRequest;
 use App\Http\Requests\UpdateBookRequest;
 use App\Models\Book;
 use Illuminate\Http\Request;
+use League\Csv\Writer;
+use Illuminate\Support\Facades\Response;
 
 class BookController extends Controller
 {
@@ -21,8 +23,8 @@ class BookController extends Controller
             $sortOrder = 'asc';
         }
         $books = Book::where('name', 'like', "%{$searchTerm}%")
-        ->orWhere('author', 'like', "%{$searchTerm}%" )
-        ->orderBy('name', $sortOrder)->get();
+            ->orWhere('author', 'like', "%{$searchTerm}%")
+            ->orderBy('name', $sortOrder)->get();
         return response()->json($books);
     }
 
@@ -48,15 +50,13 @@ class BookController extends Controller
         ]);
 
         if ($request->hasFile('cover')) {
-            $imagePath = $request->file('cover')->store('covers', 'public'); 
-            $newBook['cover'] = $imagePath; 
+            $imagePath = $request->file('cover')->store('covers', 'public');
+            $newBook['cover'] = $imagePath;
         }
 
         $book = Book::create($newBook);
 
         return response()->json(['message' => 'Book details stored successfully', $book], 201);
-
-
     }
 
     /**
@@ -81,21 +81,21 @@ class BookController extends Controller
      */
     public function update(Request $request, $book)
     {
-      
+
         $newBook = $request->validate([
-            'name' => 'required|max:255|unique:books,name,' . $book->id, 
+            'name' => 'required|max:255|unique:books,name,' . $book->id,
             'author' => 'required|max:255',
             'cover' => 'nullable|mimes:jpeg,png,jpg,gif|max:2048'
         ]);
-    
-       
+
+
         if ($request->hasFile('cover')) {
-          
-            $imagePath = $request->file('cover')->store('covers', 'public'); 
+
+            $imagePath = $request->file('cover')->store('covers', 'public');
             $newBook['cover'] = $imagePath;
         }
-    
-    
+
+
         $book->update($newBook);
         $updatedBook = Book::find($book->id);
         return response()->json(['message' => 'Book updated successfully', 'book' => $updatedBook], 200);
@@ -110,5 +110,33 @@ class BookController extends Controller
         $book->delete();
 
         return response()->json(['message' => 'Book deleted successfully']);
+    }
+
+    public function exportCsv()
+    {
+        $books = Book::all();
+        $filename = "books.csv";
+
+        $handle = fopen('php://output', 'w');
+        fputcsv($handle, ['ID', 'Name', 'Author', 'Cover']);
+
+
+        foreach ($books as $book) {
+            fputcsv($handle, [
+                $book->id,
+                $book->name,
+                $book->author,
+                $book->cover ? asset('storage/' . $book->cover) : 'No Cover'
+            ]);
+        }
+
+        fclose($handle);
+
+       return Response::streamDownload(function() use ($handle) {
+
+       },$filename, [
+        'Content-Type' => 'text/csv',
+        'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+       ]);
     }
 }
